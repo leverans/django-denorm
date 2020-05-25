@@ -15,7 +15,7 @@ from django.db.models.sql.where import WhereNode
 import django
 from decimal import Decimal
 from django.db.utils import NotSupportedError
-from django.contrib.contenttypes.models import ContentType
+
 
 def many_to_many_pre_save(sender, instance, **kwargs):
     """
@@ -600,6 +600,7 @@ def flush(verbose=False):
     all denormalized fields have consistent data.
     """
 
+    from django.contrib.contenttypes.models import ContentType
     # Loop until break.
     # We may need multiple passes, because an update on one instance
     # may cause an other instance to be marked dirty (dependency chains)
