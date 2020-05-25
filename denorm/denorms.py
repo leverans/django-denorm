@@ -624,9 +624,9 @@ def flush(verbose=False):
                 print("flushing %s of %s all dirty instances" % (i, size))
 
             ct = ContentType.objects.get_for_id(dirty_instance['content_type_id'])
-            obj = ct.get_object_for_this_type(pk=dirty_instance['object_id'])
-            obj.save()
-
+            obj = ct.model_class().objects.filter(pk=dirty_instance['object_id']).first()
+            if obj:
+                obj.save()
             DirtyInstance.objects.filter(
                 content_type_id=dirty_instance['content_type_id'],
                 object_id=dirty_instance['object_id']
