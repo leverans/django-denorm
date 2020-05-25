@@ -14,6 +14,8 @@ from django.db.models.sql.query import Query
 from django.db.models.sql.where import WhereNode
 import django
 from decimal import Decimal
+from django.db.utils import NotSupportedError
+from django.contrib.contenttypes.models import ContentType
 
 def many_to_many_pre_save(sender, instance, **kwargs):
     """
@@ -604,14 +606,7 @@ def flush(verbose=False):
     while True:
         # Get all dirty markers
         from .models import DirtyInstance
-        qs = DirtyInstance.objects.all()
-
-        try:  # If possible, dont flush the same object twice
-            qs_unified = qs.distinct('content_type', 'object_id')
-            '%s' % qs_unified   # Triggers SQL evaluation: NotImplementedError if not supported
-            qs = qs_unified
-        except NotImplementedError:  # SQLite does not suport DISTINCT ON
-            pass
+        qs = DirtyInstance.objects.all().values('content_type_id', 'object_id').distinct()
 
         # DirtyInstance table is empty -> all data is consistent -> we're done
         if not qs:
@@ -626,10 +621,12 @@ def flush(verbose=False):
             if verbose:
                 i += 1
                 print("flushing %s of %s all dirty instances" % (i, size))
-            if dirty_instance.content_object:
-                dirty_instance.content_object.save()
+
+            ct = ContentType.objects.get_for_id(dirty_instance['content_type_id'])
+            obj = ct.get_object_for_this_type(pk=dirty_instance['object_id'])
+            obj.save()
 
             DirtyInstance.objects.filter(
-                content_type_id=dirty_instance.content_type_id,
-                object_id=dirty_instance.object_id
+                content_type_id=dirty_instance['content_type_id'],
+                object_id=dirty_instance['object_id']
             ).delete()
