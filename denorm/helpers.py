@@ -20,8 +20,18 @@ def find_fks(from_model, to_model, fk_name=None):
     # get all ForeignKeys
     fkeys = [x for x in from_model._meta.fields if isinstance(x, models.ForeignKey)]
 
+    # get models declared as string pointing to 'to_model'
+    result = []
+    for x in fkeys:
+        if isinstance(remote_field_model(x), str):
+            string = remote_field_model(x)
+            model = f'{to_model._meta.app_label}.{to_model._meta.object_name}'
+            if string == model:
+                result += [x]
+
     # filter out all FKs not pointing to 'to_model'
     fkeys = [x for x in fkeys if repr(remote_field_model(x)).lower() == repr(to_model).lower()]
+    fkeys += result
 
     # if 'fk_name' was given, filter out all FKs not matching that name, leaving
     # only one (or none)
